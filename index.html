@@ -9,56 +9,64 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
-        .gradient-meal { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); }
-        .gradient-dessert { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
 
         .slot-machine-text { display: inline-block; animation: slot-spin 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
         @keyframes slot-spin { 0% { transform: translateY(-50px); opacity: 0; } 50% { transform: translateY(10px); opacity: 0.5; } 100% { transform: translateY(0); opacity: 1; } }
 
         .pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .animate-pop-in { animation: pop-in 0.3s ease-out forwards; }
+        @keyframes pop-in { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-pop-in { animation: pop-in 0.35s ease-out forwards; }
+
+        /* AI 레시피 HTML 전용 가독성 스타일 */
+        #recipe-content h2 { font-size: 1.2rem; font-weight: 800; color: #1f2937; margin-top: 0.5rem; margin-bottom: 0.5rem; padding-bottom: 0.35rem; border-bottom: 2px solid #fed7aa; }
+        #recipe-content h3 { font-size: 1.02rem; font-weight: 700; color: #ea580c; margin-top: 0.9rem; margin-bottom: 0.35rem; }
+        #recipe-content ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+        #recipe-content ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+        #recipe-content li { margin-bottom: 0.3rem; }
+        #recipe-content p { margin-bottom: 0.5rem; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
 
-    <!-- Main Container -->
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-500 transform hover:shadow-2xl">
-        <div id="header-bg" class="bg-gray-800 text-white p-8 text-center transition-colors duration-500">
-            <h1 class="text-2xl font-black mb-2 tracking-tight">오늘 뭐 먹지? 🤔</h1>
-            <p class="text-sm font-medium opacity-80">대학생을 위한 가성비 메뉴 & 레시피</p>
+    <!-- Main Split Wrapper (초기엔 중앙 정렬 max-w-md, 레시피 오픈 시 좌우 분할 max-w-5xl) -->
+    <div id="app-wrapper" class="w-full max-w-md transition-all duration-500 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6">
+        
+        <!-- Left Panel: 메뉴 추천 룰렛 -->
+        <div id="menu-panel" class="w-full lg:flex-1 bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-500 flex flex-col justify-between">
+            <div id="header-bg" class="bg-gray-800 text-white p-8 text-center transition-colors duration-500">
+                <h1 class="text-2xl font-black mb-2 tracking-tight">오늘 뭐 먹지? 🤔</h1>
+                <p class="text-sm font-medium opacity-80">대학생을 위한 가성비 메뉴 &amp; 레시피</p>
+            </div>
+
+            <div class="p-8 flex-1 flex flex-col items-center justify-center">
+                <div id="result-container" class="h-32 flex items-center justify-center w-full mb-6 relative">
+                    <p id="result-text" class="text-2xl font-bold text-center text-gray-800 break-keep leading-snug">아래 버튼을 눌러<br>메뉴를 추천받아보세요!</p>
+                </div>
+
+                <div id="recipe-action-container" class="w-full mb-6 hidden pop-in">
+                    <button onclick="generateRecipe()" class="w-full bg-gray-800 hover:bg-black text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        AI 가성비 레시피 보기
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 w-full">
+                    <button onclick="generateRandomMenu('meal')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">🍚 든든한 한끼</button>
+                    <button onclick="generateRandomMenu('dessert')" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">🍰 달콤한 디저트</button>
+                </div>
+
+                <div class="mt-6 text-center text-xs text-gray-400 font-medium">
+                    현재 조합 가능한 식사 <span id="meal-count" class="text-gray-600 font-bold"></span>개,<br>
+                    디저트 <span id="dessert-count" class="text-gray-600 font-bold"></span>개
+                </div>
+            </div>
         </div>
 
-        <div class="p-8 flex flex-col items-center">
-            <div id="result-container" class="h-32 flex items-center justify-center w-full mb-6 relative">
-                <p id="result-text" class="text-2xl font-bold text-center text-gray-800 break-keep leading-snug">아래 버튼을 눌러<br>메뉴를 추천받아보세요!</p>
-            </div>
-
-            <div id="recipe-action-container" class="w-full mb-6 hidden pop-in">
-                <button onclick="generateRecipe()" class="w-full bg-gray-800 hover:bg-black text-white font-bold py-3 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    AI 가성비 레시피 보기
-                </button>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 w-full">
-                <button onclick="generateRandomMenu('meal')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">🍚 든든한 한끼</button>
-                <button onclick="generateRandomMenu('dessert')" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">🍰 달콤한 디저트</button>
-            </div>
-
-            <div class="mt-6 text-center text-xs text-gray-400 font-medium">
-                현재 조합 가능한 식사 <span id="meal-count" class="text-gray-600 font-bold"></span>개,<br>
-                디저트 <span id="dessert-count" class="text-gray-600 font-bold"></span>개
-            </div>
-        </div>
-    </div>
-
-    <!-- Recipe Modal -->
-    <div id="recipe-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] h-[80vh] overflow-hidden transform transition-all animate-pop-in">
+        <!-- Right Panel: AI 레시피 & 채팅 (초기엔 숨김, 클릭 시 우측 반반 화면으로 등장) -->
+        <div id="recipe-panel" class="hidden w-full lg:flex-1 bg-white rounded-3xl shadow-xl overflow-hidden flex-col h-[75vh] min-h-[520px] max-h-[720px] animate-pop-in">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-shrink-0">
-                <h3 id="recipe-modal-title" class="text-xl font-bold text-gray-800">레시피</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+                <h3 id="recipe-modal-title" class="text-lg md:text-xl font-bold text-gray-800 truncate pr-2">레시피</h3>
+                <button onclick="closeRecipePanel()" title="레시피 닫기" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-200/60 flex-shrink-0">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -74,10 +82,11 @@
             <div id="chat-input-area" class="hidden px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-2 flex-shrink-0">
                 <input type="text" id="chat-input" placeholder="재료가 없나요? AI에게 물어보세요!" class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm md:text-base transition-all" onkeypress="handleKeyPress(event)">
                 <button onclick="sendChatMessage()" class="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full transition-colors flex-shrink-0 flex items-center justify-center w-10 h-10 shadow-sm transform hover:scale-105">
-                    <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    <svg class="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 </button>
             </div>
         </div>
+
     </div>
 
     <script>
@@ -161,12 +170,19 @@
         function handleKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
 
         async function generateRecipe() {
-            const modal = document.getElementById('recipe-modal');
+            const wrapper = document.getElementById('app-wrapper');
+            const panel = document.getElementById('recipe-panel');
             const loading = document.getElementById('recipe-loading');
             const content = document.getElementById('recipe-content');
             const title = document.getElementById('recipe-modal-title');
             const chatInputArea = document.getElementById('chat-input-area');
             const chatInput = document.getElementById('chat-input');
+
+            // 화면을 반반 분할 레이아웃으로 확장
+            wrapper.classList.remove('max-w-md');
+            wrapper.classList.add('max-w-5xl');
+            panel.classList.remove('hidden');
+            panel.classList.add('flex');
 
             title.textContent = `"${currentMenuName}" 레시피 👩‍🍳`;
             loading.classList.remove('hidden');
@@ -175,11 +191,14 @@
             chatInputArea.classList.add('hidden');
             chatInputArea.classList.remove('flex');
             chatInput.value = "";
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
             
             content.innerHTML = ''; 
             chatHistory = []; 
+
+            // 모바일 환경에서는 아래쪽에 열린 레시피 패널로 부드럽게 스크롤
+            if (window.innerWidth < 1024) {
+                setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+            }
 
             const firstPrompt = `당신은 좁은 원룸에 사는 가난한 대학생을 위한 최고의 자취 요리 전문가입니다. 
 오늘의 추천 메뉴는 "${currentMenuName}"입니다. 이 메뉴를 만들 수 있는 초간단, 가성비 레시피를 알려주세요.
@@ -210,7 +229,7 @@
                 
             } catch (error) {
                 console.error("API Error:", error);
-                appendMessage('error', `🚨 진짜 에러 원인: <br><span class="text-xs text-gray-500">${error.message}</span><br>Cloudflare API 키 설정을 확인해주세요!`);
+                appendMessage('error', `🚨 진짜 에러 원인: <br><span class="text-xs text-gray-500">${error.message}</span>`);
             } finally {
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
@@ -265,7 +284,15 @@
             }
         }
 
-        function closeModal() { document.getElementById('recipe-modal').classList.add('hidden'); document.getElementById('recipe-modal').classList.remove('flex'); }
+        function closeRecipePanel() {
+            const wrapper = document.getElementById('app-wrapper');
+            const panel = document.getElementById('recipe-panel');
+            
+            panel.classList.add('hidden');
+            panel.classList.remove('flex');
+            wrapper.classList.remove('max-w-5xl');
+            wrapper.classList.add('max-w-md');
+        }
     </script>
 </body>
 </html>
