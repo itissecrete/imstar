@@ -3,355 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>대학생 맞춤 가성비 메뉴 추천기</title>
+    <title>오늘 뭐 먹지? - 자취생 메뉴 추천기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+        body { font-family: 'Gowun Dodum', sans-serif; background-color: #f3f4f6; }
+        .gradient-meal { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); }
+        .gradient-dessert { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
         
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #f8fafc;
-        }
-
-        .gradient-meal {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
-        }
-
-        .gradient-dessert {
-            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
-        }
-
-        .slot-machine-text {
-            display: inline-block;
-            animation: slot-spin 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
-        @keyframes slot-spin {
-            0% { transform: translateY(-50px); opacity: 0; }
-            50% { transform: translateY(10px); opacity: 0.5; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-
-        .pop-in {
-            animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        @keyframes pop-in {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        .animate-pop-in {
-            animation: pop-in 0.3s ease-out forwards;
-        }
+        /* 모달 및 채팅 UI 스타일 */
+        .modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; }
+        .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background: white; border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column; max-height: 80vh; }
+        .chat-box { flex: 1; overflow-y: auto; padding: 1rem; background: #f9fafb; display: flex; flex-direction: column; gap: 0.8rem; }
+        .message { max-width: 80%; padding: 0.8rem 1rem; border-radius: 1rem; line-height: 1.4; word-break: keep-all; }
+        .system-message { align-self: center; background: #e5e7eb; color: #374151; font-size: 0.9rem; text-align: center; }
+        .user-message { align-self: flex-end; background: #3b82f6; color: white; border-bottom-right-radius: 0.2rem; }
+        .ai-message { align-self: flex-start; background: white; border: 1px solid #e5e7eb; color: #1f2937; border-bottom-left-radius: 0.2rem; }
+        .input-area { display: flex; padding: 1rem; background: white; border-top: 1px solid #e5e7eb; gap: 0.5rem; }
+        .input-area input { flex: 1; padding: 0.6rem 1rem; border: 1px solid #d1d5db; border-radius: 9999px; outline: none; }
+        .input-area input:focus { border-color: #3b82f6; }
+        .input-area button { background: #3b82f6; color: white; padding: 0.6rem 1.2rem; border-radius: 9999px; font-weight: bold; transition: background 0.2s; }
+        .input-area button:hover { background: #2563eb; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Main Container -->
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-500 transform hover:shadow-2xl">
-        
-        <!-- Header Section -->
-        <div id="header-bg" class="bg-gray-800 text-white p-8 text-center transition-colors duration-500">
-            <h1 class="text-2xl font-black mb-2 tracking-tight">오늘 뭐 먹지? 🤔</h1>
-            <p class="text-sm font-medium opacity-80">대학생을 위한 가성비 메뉴 & 레시피</p>
+    <div class="max-w-md w-full space-y-6 text-center">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8">🤔 오늘 뭐 먹지?</h1>
+
+        <!-- 식사 추천 섹션 -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-transform transform hover:scale-105">
+            <div id="meal-card" class="gradient-meal p-8 h-40 flex items-center justify-center transition-colors duration-500">
+                <p id="meal-text" class="text-2xl font-bold text-gray-800 drop-shadow-md">버튼을 눌러주세요!</p>
+            </div>
+            <div class="p-4 flex gap-2">
+                <button onclick="generateMeal()" class="flex-1 bg-gray-800 text-white font-bold py-3 px-4 rounded-xl hover:bg-gray-700 transition">
+                    🍚 식사 추천받기
+                </button>
+                <button onclick="requestRecipe('meal-text')" class="bg-blue-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-600 transition">
+                    👨‍🍳 레시피
+                </button>
+            </div>
         </div>
 
-        <!-- Content Section -->
-        <div class="p-8 flex flex-col items-center">
-            
-            <!-- Result Display -->
-            <div id="result-container" class="h-32 flex items-center justify-center w-full mb-6 relative">
-                <p id="result-text" class="text-2xl font-bold text-center text-gray-800 break-keep leading-snug">
-                    아래 버튼을 눌러<br>메뉴를 추천받아보세요!
-                </p>
+        <!-- 디저트 추천 섹션 -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-transform transform hover:scale-105">
+            <div id="dessert-card" class="gradient-dessert p-8 h-40 flex items-center justify-center transition-colors duration-500">
+                <p id="dessert-text" class="text-2xl font-bold text-gray-800 drop-shadow-md">버튼을 눌러주세요!</p>
             </div>
-
-            <!-- Recipe Button (Hidden by default) -->
-            <div id="recipe-action-container" class="w-full mb-6 hidden pop-in">
-                <button onclick="generateRecipe()" class="w-full bg-gray-800 hover:bg-black text-white font-bold py-3 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    AI 가성비 레시피 보기
+            <div class="p-4 flex gap-2">
+                <button onclick="generateDessert()" class="flex-1 bg-gray-800 text-white font-bold py-3 px-4 rounded-xl hover:bg-gray-700 transition">
+                    🍰 디저트 추천받기
                 </button>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-2 gap-4 w-full">
-                <button onclick="generateRandomMenu('meal')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">
-                    🍚 든든한 한끼
+                <button onclick="requestRecipe('dessert-text')" class="bg-blue-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-600 transition">
+                    👨‍🍳 레시피
                 </button>
-                <button onclick="generateRandomMenu('dessert')" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">
-                    🍰 달콤한 디저트
-                </button>
-            </div>
-
-            <!-- Stats -->
-            <div class="mt-6 text-center text-xs text-gray-400 font-medium">
-                현재 조합 가능한 식사 <span id="meal-count" class="text-gray-600 font-bold"></span>개,<br>
-                디저트 <span id="dessert-count" class="text-gray-600 font-bold"></span>개
             </div>
         </div>
+
+        <p class="text-gray-500 text-sm mt-8">
+            현재 <span id="meal-count" class="font-bold text-gray-700"></span>개의 식사와 
+            <span id="dessert-count" class="font-bold text-gray-700"></span>개의 디저트 조합이 가능합니다.
+        </p>
     </div>
 
-    <!-- Recipe Modal -->
-    <div id="recipe-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] h-[80vh] overflow-hidden transform transition-all animate-pop-in">
-            <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-shrink-0">
-                <h3 id="recipe-modal-title" class="text-xl font-bold text-gray-800">레시피</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+    <!-- 레시피 대화 모달 UI -->
+    <div id="recipe-modal" class="modal-bg">
+        <div class="modal-content shadow-2xl">
+            <div class="bg-gray-800 text-white px-4 py-3 flex justify-between items-center font-bold">
+                <span>🤖 AI 레시피 도우미</span>
+                <button onclick="closeModal()" class="text-gray-300 hover:text-white text-xl">&times;</button>
             </div>
-            
-            <!-- Modal Body (Chat Container) -->
-            <div class="p-4 md:p-6 overflow-y-auto flex-1 flex flex-col bg-gray-50/50 relative" id="chat-container">
-                <!-- Loading State -->
-                <div id="recipe-loading" class="flex flex-col items-center justify-center h-full space-y-4">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-                    <p class="text-gray-500 font-medium animate-pulse text-center">
-                        자취생을 위한 초간단 가성비 레시피를<br>AI가 작성 중입니다... 🍳
-                    </p>
-                </div>
-                
-                <!-- Chat Content -->
-                <div id="recipe-content" class="hidden flex-col gap-4 w-full pb-2 text-sm md:text-base">
-                    <!-- Chat messages will be injected here by JS -->
-                </div>
+            <div id="chat-box" class="chat-box">
+                <!-- 대화 내용이 여기에 추가됩니다 -->
             </div>
-
-            <!-- Chat Input Area -->
-            <div id="chat-input-area" class="hidden px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-2 flex-shrink-0">
-                <input type="text" id="chat-input" placeholder="재료가 없나요? AI에게 물어보세요!" class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm md:text-base transition-all" onkeypress="handleKeyPress(event)">
-                <button onclick="sendChatMessage()" class="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full transition-colors flex-shrink-0 flex items-center justify-center w-10 h-10 shadow-sm transform hover:scale-105">
-                    <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                </button>
+            <div class="input-area">
+                <input type="text" id="chat-input" placeholder="AI에게 재료 교체나 꿀팁을 물어보세요!" onkeypress="if(event.key === 'Enter') submitChat()">
+                <button onclick="submitChat()">전송</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Store current selected menu globally
-        let currentMenuName = "";
-        let chatHistory = []; 
+        // --- 1. 자취생 맞춤 식사 데이터 (20 * 20 * 20 = 8000개 조합) ---
+        const mealAdjectives = ["가성비 갑", "매콤한", "단짠단짠", "든든한", "눈물나는", "치즈 듬뿍", "야식으로 딱인", "스트레스 풀리는", "해장용", "고소한", "초간단", "자취생 필수", "엄마가 해준 듯한", "밥도둑", "기사식당 스타일", "불맛 나는", "달콤짭짤", "실패 없는", "5분 컷", "냉장고 파먹기"];
+        const mealIngredients = ["스팸", "참치", "계란", "대패삼겹살", "제육", "참치마요", "소시지", "어묵", "두부", "김치", "베이컨", "닭가슴살", "우삼겹", "불닭", "짜파게티", "만두", "치킨너겟", "떡갈비", "비엔나", "삼겹살"];
+        const mealDishes = ["마요덮밥", "컵밥", "떡볶이", "주먹밥", "라면", "볶음밥", "덮밥", "비빔밥", "찌개", "전골", "파스타", "우동", "국수", "리조또", "토스트", "샌드위치", "김밥", "볶음", "계란말이", "그라탕"];
 
-        // Data generation arrays - 20 items per array ensuring 20 * 20 * 20 = 8000 combinations each
-        const mealsData = {
-            adjectives: ["가성비 갑", "치즈 듬뿍", "매콤달콤", "해장용", "단짠단짠", "든든한", "초간단", "스트레스 풀리는", "엄마 손맛", "야식 추천", "고소한", "얼큰한", "달짝지근한", "불맛 나는", "바삭한", "촉촉한", "영양 만점", "밥도둑", "술안주", "다이어트(양심상)"],
-            ingredients: ["스팸", "참치", "계란", "제육", "대패삼겹살", "김치", "소시지", "어묵", "두부", "닭가슴살", "돼지고기", "우동사리", "라면사리", "베이컨", "옥수수콘", "떡", "만두", "고추장", "간장", "마요네즈"],
-            types: ["마요덮밥", "컵밥", "떡볶이", "주먹밥", "라면", "볶음밥", "비빔밥", "찌개", "전", "파스타", "우동", "국수", "토스트", "샌드위치", "샐러드", "김밥", "유부초밥", "그라탕", "리조또", "덮밥"]
-        };
+        // --- 2. 자취생 맞춤 디저트/간식 데이터 (20 * 20 * 20 = 8000개 조합) ---
+        const dessertAdjectives = ["달달한", "시원한", "쫀득한", "바삭한", "상큼한", "부드러운", "입에서 녹는", "스트레스 날아가는", "혈당 충전", "초간단", "편의점 꿀조합", "미친 가성비", "꾸덕한", "고소한", "단짠", "폭신한", "차가운", "따뜻한", "비주얼 폭발", "죄책감 드는"];
+        const dessertIngredients = ["오레오", "초코파이", "투게더 바닐라", "요거트", "바나나", "딸기잼", "누텔라", "치즈", "연유", "녹차", "인절미", "씨리얼", "우유", "커피", "식빵", "버터", "아이스크림", "크림치즈", "꿀", "고구마"];
+        const dessertDishes = ["빙수", "토스트", "쉐이크", "스무디", "케이크", "쿠키", "크로플", "파르페", "푸딩", "아포가토", "라떼", "호떡", "팬케이크", "크래커", "젤리", "과일화채", "요거트볼", "샌드", "퐁듀", "브라우니"];
 
-        const dessertsData = {
-            adjectives: ["달콤한", "상큼한", "부드러운", "시원한", "꾸덕한", "쫀득한", "바삭한", "사르르 녹는", "쌉싸름한", "고소한", "가벼운", "든든한", "상쾌한", "진한", "촉촉한", "폭신폭신한", "짭짤한", "달달한", "톡 쏘는", "차가운"],
-            ingredients: ["초코", "바닐라", "딸기", "녹차", "치즈", "카라멜", "요거트", "망고", "복숭아", "사과", "바나나", "팥", "인절미", "흑임자", "레몬", "자몽", "블루베리", "오레오", "로투스", "민트초코"],
-            types: ["아이스크림", "마카롱", "크로플", "빙수", "케이크", "쿠키", "푸딩", "젤리", "쉐이크", "에이드", "스무디", "타르트", "와플", "팬케이크", "도넛", "머핀", "스콘", "브라우니", "카스테라", "파르페"]
-        };
+        // 조합수 계산 및 화면 표시
+        document.getElementById('meal-count').innerText = (mealAdjectives.length * mealIngredients.length * mealDishes.length).toLocaleString();
+        document.getElementById('dessert-count').innerText = (dessertAdjectives.length * dessertIngredients.length * dessertDishes.length).toLocaleString();
 
-        // Initialize counters on load
-        window.onload = () => {
-            const mealCombinations = mealsData.adjectives.length * mealsData.ingredients.length * mealsData.types.length;
-            const dessertCombinations = dessertsData.adjectives.length * dessertsData.ingredients.length * dessertsData.types.length;
-            
-            // Format with commas
-            document.getElementById('meal-count').innerText = mealCombinations.toLocaleString();
-            document.getElementById('dessert-count').innerText = dessertCombinations.toLocaleString();
-        };
+        function getRandomItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-        function getRandomItem(array) {
-            return array[Math.floor(Math.random() * array.length)];
+        function generateMeal() {
+            const result = `${getRandomItem(mealAdjectives)} ${getRandomItem(mealIngredients)} ${getRandomItem(mealDishes)}`;
+            document.getElementById('meal-text').innerText = result;
         }
 
-        function generateRandomMenu(type) {
-            const resultText = document.getElementById('result-text');
-            const headerBg = document.getElementById('header-bg');
-            const recipeActionContainer = document.getElementById('recipe-action-container');
-            
-            // Hide recipe button during shuffle
-            recipeActionContainer.classList.add('hidden');
-            recipeActionContainer.classList.remove('pop-in');
+        function generateDessert() {
+            const result = `${getRandomItem(dessertAdjectives)} ${getRandomItem(dessertIngredients)} ${getRandomItem(dessertDishes)}`;
+            document.getElementById('dessert-text').innerText = result;
+        }
 
-            let data;
-            if (type === 'meal') {
-                data = mealsData;
-                headerBg.className = 'bg-orange-500 text-white p-8 text-center transition-colors duration-500';
-            } else {
-                data = dessertsData;
-                headerBg.className = 'bg-purple-500 text-white p-8 text-center transition-colors duration-500';
+        // --- 3. AI 통신 및 채팅 로직 ---
+        
+        // 🚨 넷리파이 서버 주소 세팅 완료 (itissecrete.netlify.app)
+        const NETLIFY_SERVER_URL = "https://itissecrete.netlify.app/.netlify/functions/ai-server";
+        let chatHistory = [];
+
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById('recipe-modal').style.display = 'none';
+        }
+
+        // 특정 메뉴의 레시피 요청 시작
+        async function requestRecipe(elementId) {
+            const menuName = document.getElementById(elementId).innerText;
+            if (menuName === "버튼을 눌러주세요!") {
+                alert("먼저 메뉴를 추천받아주세요!");
+                return;
             }
 
-            // Shuffle effect
-            let shuffleCount = 0;
-            const shuffleInterval = setInterval(() => {
-                const adj = getRandomItem(data.adjectives);
-                const ing = getRandomItem(data.ingredients);
-                const typ = getRandomItem(data.types);
-                resultText.innerText = `${adj} ${ing} ${typ}`;
-                resultText.style.opacity = '0.5';
-                
-                shuffleCount++;
-                if (shuffleCount > 10) {
-                    clearInterval(shuffleInterval);
-                    
-                    // Final Result
-                    const finalAdj = getRandomItem(data.adjectives);
-                    const finalIng = getRandomItem(data.ingredients);
-                    const finalTyp = getRandomItem(data.types);
-                    currentMenuName = `${finalAdj} ${finalIng} ${finalTyp}`; // Store for recipe
-                    
-                    resultText.innerHTML = `<span class="slot-machine-text text-${type === 'meal' ? 'orange' : 'purple'}-600">${finalAdj}</span> <br> <span class="slot-machine-text" style="animation-delay: 0.1s">${finalIng} ${finalTyp}</span>`;
-                    resultText.style.opacity = '1';
-
-                    // Show Recipe Button
-                    setTimeout(() => {
-                        recipeActionContainer.classList.remove('hidden');
-                        recipeActionContainer.classList.add('pop-in');
-                    }, 400);
-                }
-            }, 50);
-        }
-
-        // Helper functions for chat UI
-        function appendMessage(sender, text) {
-            const content = document.getElementById('recipe-content');
-            const msgDiv = document.createElement('div');
-            
-            if (sender === 'user') {
-                msgDiv.className = "self-end bg-orange-100 text-orange-900 px-4 py-3 rounded-2xl rounded-tr-sm max-w-[85%] shadow-sm break-words";
-                msgDiv.textContent = text; 
-            } else if (sender === 'ai') {
-                msgDiv.className = "self-start bg-white border border-gray-200 text-gray-700 px-5 py-4 rounded-2xl rounded-tl-sm w-full shadow-sm leading-relaxed";
-                msgDiv.innerHTML = text;
-            } else {
-                msgDiv.className = "self-center text-red-500 font-semibold text-center w-full py-2 bg-red-50 rounded-xl";
-                msgDiv.innerHTML = text;
-            }
-            
-            content.appendChild(msgDiv);
-            
-            // Scroll to bottom
-            const chatContainer = document.getElementById('chat-container');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') {
-                sendChatMessage();
-            }
-        }
-
-        // Server endpoint: deploy a small backend (e.g. Cloudflare Worker) and set its URL here.
-        // Example: const AI_ENDPOINT = "https://your-worker-name.your-subdomain.workers.dev";
-        const AI_ENDPOINT = "https://weathered-lab-4edf.lookc869.workers.dev/";
-
-        async function requestAI(messages) {
-            if (!AI_ENDPOINT || AI_ENDPOINT === "YOUR_AI_BACKEND_URL") {
-                throw new Error("AI 서버 주소가 아직 설정되지 않았습니다. index.html의 AI_ENDPOINT를 먼저 설정해주세요.");
-            }
-            const response = await fetch(AI_ENDPOINT, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages })
-            });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(result.error || `서버 오류 (${response.status})`);
-            if (typeof result.content !== "string") throw new Error("AI 서버 응답 형식이 올바르지 않습니다.");
-            return result.content;
-        }
-
-        // AI Recipe Generation (Initial Call)
-        async function generateRecipe() {
             const modal = document.getElementById('recipe-modal');
-            const loading = document.getElementById('recipe-loading');
-            const content = document.getElementById('recipe-content');
-            const title = document.getElementById('recipe-modal-title');
-            const chatInputArea = document.getElementById('chat-input-area');
-            const chatInput = document.getElementById('chat-input');
-
-            title.textContent = `"${currentMenuName}" 레시피 👩‍🍳`;
-            loading.classList.remove('hidden');
-            content.classList.add('hidden');
-            content.classList.remove('flex');
-            chatInputArea.classList.add('hidden');
-            chatInputArea.classList.remove('flex');
-            chatInput.value = "";
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            content.innerHTML = '';
+            const chatBox = document.getElementById('chat-box');
+            modal.style.display = 'block';
+            chatBox.innerHTML = `<div class="message system-message">🍳 <b>${menuName}</b> 자취생 맞춤 레시피를 불러오는 중입니다...</div>`;
+            
             chatHistory = [];
+            const firstPrompt = `대학생 자취생이 쉽고 싸게 만들 수 있는 '${menuName}' 레시피를 알려줘. 친근하고 유쾌한 말투로 설명해줘.`;
+            
+            await sendMessageToAI(firstPrompt, true);
+        }
 
-            const systemPrompt = `당신은 좁은 원룸에 사는 가난한 대학생을 위한 최고의 자취 요리 전문가입니다.
-다음 원칙을 엄격하게 지켜주세요:
-1. 비싼 재료는 절대 사용하지 말고, 편의점이나 동네 마트에서 쉽게 구할 수 있는 대체재(스팸, 참치, 계란, 조미김 등)를 활용하세요.
-2. 조리 도구는 전자레인지나 프라이팬 하나로 끝낼 수 있게 아주 간단해야 합니다.
-3. 응답은 웹페이지에 바로 삽입되므로 마크다운 대신 깔끔한 HTML 태그(<h2>, <h3>, <ul>, <li>, <strong>, <br> 등)만을 사용하여 가독성 좋게 출력해주세요. 불필요한 마크다운 백틱(\`\`\`)은 넣지 마세요.
-4. 재료와 조리 순서를 명확하게 구분해주세요.
-5. 대화형 챗봇이므로 사용자가 특정 재료가 없다고 하면 가장 적절하고 저렴한 대체재를 친절하게 제안해주세요.`;
+        // AI 서버로 메시지 전송 및 답변 받기
+        async function sendMessageToAI(text, isFirstMessage = false) {
+            const chatBox = document.getElementById('chat-box');
+            
+            if (!isFirstMessage) {
+                chatBox.innerHTML += `<div class="message user-message">${text}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
 
-            const userQuery = `오늘의 추천 메뉴는 "${currentMenuName}"입니다. 이 메뉴를 만들 수 있는 초간단, 가성비 레시피를 알려주세요.`;
-            chatHistory.push({ role: "system", content: systemPrompt });
-            chatHistory.push({ role: "user", content: userQuery });
+            chatHistory.push({ role: "user", parts: [{ text: text }] });
 
             try {
-                const aiText = await requestAI(chatHistory);
-                chatHistory.push({ role: "assistant", content: aiText });
-                appendMessage('ai', aiText);
-                chatInputArea.classList.remove('hidden');
-                chatInputArea.classList.add('flex');
+                const response = await fetch(NETLIFY_SERVER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: chatHistory }) 
+                });
+
+                if (!response.ok) throw new Error("서버 응답 오류");
+                const data = await response.json();
+
+                const aiReply = data.candidates[0].content.parts[0].text;
+                
+                chatHistory.push({ role: "model", parts: [{ text: aiReply }] });
+
+                if (isFirstMessage) chatBox.innerHTML = '';
+                // 마크다운 줄바꿈과 굵은 글씨 등을 간단히 HTML로 변환
+                const formattedReply = aiReply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                chatBox.innerHTML += `<div class="message ai-message">${formattedReply}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+
             } catch (error) {
-                console.error("AI Error:", error);
-                appendMessage('error', `레시피 생성 실패: ${error.message}`);
-            } finally {
-                loading.classList.add('hidden');
-                content.classList.remove('hidden');
-                content.classList.add('flex');
-                setTimeout(() => chatInput.focus(), 100);
+                chatBox.innerHTML += `<div class="message ai-message" style="color:red;">앗, 레시피를 가져오는데 문제가 생겼어요! 서버 연결을 확인해주세요.</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
             }
         }
 
-        // ChatGPT API Chat Interaction (Follow-up calls)
-        async function sendChatMessage() {
+        // 입력창 전송 버튼 클릭 시
+        function submitChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if (!text) return;
-            
-            input.value = '';
-            input.disabled = true;
-            
-            appendMessage('user', text);
-            chatHistory.push({ role: "user", content: text });
-            
-            const content = document.getElementById('recipe-content');
-            const loadingBubble = document.createElement('div');
-            loadingBubble.id = "chat-typing-indicator";
-            loadingBubble.className = "self-start bg-white border border-gray-100 px-5 py-4 rounded-2xl rounded-tl-sm shadow-sm flex gap-2 items-center";
-            loadingBubble.innerHTML = '<span class="animate-bounce w-2 h-2 bg-orange-400 rounded-full"></span><span class="animate-bounce w-2 h-2 bg-orange-400 rounded-full" style="animation-delay: 0.2s"></span><span class="animate-bounce w-2 h-2 bg-orange-400 rounded-full" style="animation-delay: 0.4s"></span>';
-            content.appendChild(loadingBubble);
-            
-            const chatContainer = document.getElementById('chat-container');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            try {
-                const aiText = await requestAI(chatHistory);
-                loadingBubble.remove();
-                chatHistory.push({ role: "assistant", content: aiText });
-                appendMessage('ai', aiText);
-            } catch (error) {
-                console.error("AI Error:", error);
-                loadingBubble.remove();
-                appendMessage('error', `AI 응답 실패: ${error.message}`);
-            } finally {
-                input.disabled = false;
-                input.focus();
+            if (text) {
+                sendMessageToAI(text);
+                input.value = '';
             }
-        }
-
-        // Close Modal
-        function closeModal() {
-            const modal = document.getElementById('recipe-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
         }
     </script>
 </body>
