@@ -81,16 +81,16 @@
                     🍚 든든한 한끼
                 </button>
                 <button onclick="generateRandomMenu('dessert')" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-2 rounded-2xl shadow-md transition transform hover:scale-105 active:scale-95">
-                    🍰 달달한 디저트
+                    🍰 달콤한 디저트
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- Info Footer -->
-    <div class="mt-8 text-center text-gray-500 text-sm">
-        <p>현재 생성 가능한 가짓수</p>
-        <p class="font-bold mt-1">식사 <span id="meal-count" class="text-orange-500">0</span>개 | 디저트 <span id="dessert-count" class="text-purple-500">0</span>개</p>
+            <!-- Stats -->
+            <div class="mt-6 text-center text-xs text-gray-400 font-medium">
+                현재 조합 가능한 식사 <span id="meal-count" class="text-gray-600 font-bold"></span>개,<br>
+                디저트 <span id="dessert-count" class="text-gray-600 font-bold"></span>개
+            </div>
+        </div>
     </div>
 
     <!-- Recipe Modal -->
@@ -240,7 +240,26 @@
             }
         }
 
-        // Gemini API Recipe Generation (Initial Call)
+        // Server endpoint: deploy a small backend (e.g. Cloudflare Worker) and set its URL here.
+        // Example: const AI_ENDPOINT = "https://your-worker-name.your-subdomain.workers.dev";
+        const AI_ENDPOINT = "https://weathered-lab-4edf.lookc869.workers.dev/";
+
+        async function requestAI(messages) {
+            if (!AI_ENDPOINT || AI_ENDPOINT === "YOUR_AI_BACKEND_URL") {
+                throw new Error("AI 서버 주소가 아직 설정되지 않았습니다. index.html의 AI_ENDPOINT를 먼저 설정해주세요.");
+            }
+            const response = await fetch(AI_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || `서버 오류 (${response.status})`);
+            if (typeof result.content !== "string") throw new Error("AI 서버 응답 형식이 올바르지 않습니다.");
+            return result.content;
+        }
+
+        // AI Recipe Generation (Initial Call)
         async function generateRecipe() {
             const modal = document.getElementById('recipe-modal');
             const loading = document.getElementById('recipe-loading');
@@ -249,7 +268,6 @@
             const chatInputArea = document.getElementById('chat-input-area');
             const chatInput = document.getElementById('chat-input');
 
-            // Setup and open modal
             title.textContent = `"${currentMenuName}" 레시피 👩‍🍳`;
             loading.classList.remove('hidden');
             content.classList.add('hidden');
@@ -259,11 +277,11 @@
             chatInput.value = "";
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            
-            content.innerHTML = ''; 
-            chatHistory = []; 
 
-            const systemPrompt = `당신은 좁은 원룸에 사는 가난한 대학생을 위한 최고의 자취 요리 전문가입니다. 
+            content.innerHTML = '';
+            chatHistory = [];
+
+            const systemPrompt = `당신은 좁은 원룸에 사는 가난한 대학생을 위한 최고의 자취 요리 전문가입니다.
 다음 원칙을 엄격하게 지켜주세요:
 1. 비싼 재료는 절대 사용하지 말고, 편의점이나 동네 마트에서 쉽게 구할 수 있는 대체재(스팸, 참치, 계란, 조미김 등)를 활용하세요.
 2. 조리 도구는 전자레인지나 프라이팬 하나로 끝낼 수 있게 아주 간단해야 합니다.
@@ -272,41 +290,18 @@
 5. 대화형 챗봇이므로 사용자가 특정 재료가 없다고 하면 가장 적절하고 저렴한 대체재를 친절하게 제안해주세요.`;
 
             const userQuery = `오늘의 추천 메뉴는 "${currentMenuName}"입니다. 이 메뉴를 만들 수 있는 초간단, 가성비 레시피를 알려주세요.`;
-            
-            chatHistory.push({ role: "user", parts: [{ text: userQuery }] });
-
-            const apiKey = ""; // API key is automatically provided in this runtime environment
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-            const payload = {
-                contents: chatHistory,
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
+            chatHistory.push({ role: "system", content: systemPrompt });
+            chatHistory.push({ role: "user", content: userQuery });
 
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
-                    let aiText = result.candidates[0].content.parts[0].text;
-                    aiText = aiText.replace(/```html/g, '').replace(/```/g, '');
-                    
-                    chatHistory.push({ role: "model", parts: [{ text: aiText }] });
-                    
-                    appendMessage('ai', aiText);
-                    chatInputArea.classList.remove('hidden');
-                    chatInputArea.classList.add('flex');
-                } else {
-                    appendMessage('error', "레시피를 불러오는데 실패했습니다. 😭<br>다시 시도해주세요.");
-                }
+                const aiText = await requestAI(chatHistory);
+                chatHistory.push({ role: "assistant", content: aiText });
+                appendMessage('ai', aiText);
+                chatInputArea.classList.remove('hidden');
+                chatInputArea.classList.add('flex');
             } catch (error) {
-                console.error("API Error:", error);
-                appendMessage('error', "네트워크 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.");
+                console.error("AI Error:", error);
+                appendMessage('error', `레시피 생성 실패: ${error.message}`);
             } finally {
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
@@ -315,7 +310,7 @@
             }
         }
 
-        // Gemini API Chat Interaction (Follow-up calls)
+        // ChatGPT API Chat Interaction (Follow-up calls)
         async function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
@@ -325,7 +320,7 @@
             input.disabled = true;
             
             appendMessage('user', text);
-            chatHistory.push({ role: "user", parts: [{ text: text }] });
+            chatHistory.push({ role: "user", content: text });
             
             const content = document.getElementById('recipe-content');
             const loadingBubble = document.createElement('div');
@@ -337,39 +332,15 @@
             const chatContainer = document.getElementById('chat-container');
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
-            const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-            const payload = {
-                contents: chatHistory,
-                systemInstruction: {
-                    parts: [{ text: "사용자가 이전 요리법에 대해 질문하거나 재료 대체재를 요구하고 있습니다. 친절하고 다정하게, 주변에서 구하기 쉬운 싼 재료로 대체하는 방법을 알려주세요. 불필요한 마크다운 백틱(```)은 빼고 HTML 태그만 사용해 가독성을 높이세요." }]
-                }
-            };
-
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
+                const aiText = await requestAI(chatHistory);
                 loadingBubble.remove();
-                
-                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
-                    let aiText = result.candidates[0].content.parts[0].text;
-                    aiText = aiText.replace(/```html/g, '').replace(/```/g, '');
-                    
-                    chatHistory.push({ role: "model", parts: [{ text: aiText }] });
-                    appendMessage('ai', aiText);
-                } else {
-                    appendMessage('error', "응답을 불러오는데 실패했습니다.");
-                }
+                chatHistory.push({ role: "assistant", content: aiText });
+                appendMessage('ai', aiText);
             } catch (error) {
-                console.error("API Error:", error);
+                console.error("AI Error:", error);
                 loadingBubble.remove();
-                appendMessage('error', "네트워크 오류가 발생했습니다.");
+                appendMessage('error', `AI 응답 실패: ${error.message}`);
             } finally {
                 input.disabled = false;
                 input.focus();
