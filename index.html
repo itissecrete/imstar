@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘 뭐 먹지? - 랜덤 메뉴 추천</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            min-height: 100vh;
+        }
+
+        /* Custom Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shuffle {
+            0% { transform: translateY(0); opacity: 1; }
+            50% { transform: translateY(-10px); opacity: 0.5; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .animate-shuffle {
+            animation: shuffle 0.2s ease-in-out infinite;
+        }
+
+        /* Category specific themes */
+        .theme-meal {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+        }
+        
+        .theme-dessert {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+        }
+        
+        .theme-default {
+            background: white;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-6 text-gray-800">
+
+    <!-- Header -->
+    <header class="text-center mb-10 mt-8">
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 mb-3">
+            오늘 뭐 먹지? <span class="text-3xl">🤔</span>
+        </h1>
+        <p class="text-lg text-gray-600">수천 가지 조합 중 당신을 위한 단 하나의 메뉴!</p>
+    </header>
+
+    <!-- Main Card -->
+    <main class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500 id="main-card">
+        
+        <!-- Result Display Area -->
+        <div id="result-area" class="h-64 flex flex-col items-center justify-center p-8 text-center theme-default transition-all duration-500 relative">
+            <span id="category-badge" class="absolute top-6 px-4 py-1 rounded-full text-sm font-bold text-white shadow-sm opacity-0 transition-opacity">
+                카테고리
+            </span>
+            
+            <h2 id="result-text" class="text-3xl md:text-4xl font-extrabold text-gray-800 leading-tight">
+                버튼을 눌러<br>메뉴를 추천받아보세요!
+            </h2>
+            
+            <p id="sub-text" class="mt-4 text-gray-600 font-medium">당신의 완벽한 한 끼를 찾아드립니다.</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="p-8 bg-white flex flex-col md:flex-row gap-4 justify-center items-center">
+            <button onclick="recommend('meal')" class="w-full md:w-1/2 group relative px-6 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 overflow-hidden">
+                <div class="absolute inset-0 w-full h-full bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                <span class="flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    식사 추천받기
+                </span>
+            </button>
+            
+            <button onclick="recommend('dessert')" class="w-full md:w-1/2 group relative px-6 py-4 rounded-2xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 overflow-hidden">
+                <div class="absolute inset-0 w-full h-full bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                <span class="flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path></svg>
+                    디저트 추천받기
+                </span>
+            </button>
+        </div>
+    </main>
+
+    <!-- Data Info -->
+    <footer class="mt-10 text-center space-y-2 text-sm text-gray-500">
+        <p>💡 총 가능한 식사 메뉴 조합 수: <strong id="meal-count" class="text-orange-600 font-semibold"></strong>개</p>
+        <p>🍩 총 가능한 디저트 메뉴 조합 수: <strong id="dessert-count" class="text-purple-600 font-semibold"></strong>개</p>
+    </footer>
+
+    <script>
+        // Data generation arrays - 20 items per array ensuring 20 * 20 * 20 = 8000 combinations each
+        const mealAdjectives = [
+            "매콤한", "달콤한", "짭짤한", "얼큰한", "담백한", 
+            "고소한", "불맛 나는", "진한", "부드러운", "바삭한", 
+            "새콤달콤한", "칼칼한", "구수한", "향긋한", "마라맛", 
+            "치즈 듬뿍", "트러플 향", "갈릭", "단짠단짠", "입에서 녹는"
+        ];
+        const mealIngredients = [
+            "돼지고기", "소고기", "닭고기", "오리", "양고기", 
+            "연어", "참치", "새우", "오징어", "문어", 
+            "전복", "명란", "두부", "버섯", "김치", 
+            "스팸", "베이컨", "소시지", "아보카도", "차돌박이"
+        ];
+        const mealTypes = [
+            "덮밥", "볶음밥", "비빔밥", "찌개", "전골", 
+            "국밥", "볶음", "구이", "조림", "찜", 
+            "튀김", "파스타", "우동", "라면", "짬뽕", 
+            "쌀국수", "돈까스", "스테이크", "피자", "버거"
+        ];
+
+        const dessertAdjectives = [
+            "꾸덕한", "부드러운", "촉촉한", "쫀득한", "달콤한", 
+            "상큼한", "진한", "고소한", "쌉싸름한", "시원한", 
+            "따뜻한", "폭신폭신한", "사르르 녹는", "달달한", "깔끔한", 
+            "바삭바삭한", "풍미 가득한", "입안 가득", "헤비한", "가벼운"
+        ];
+        const dessertFlavors = [
+            "바닐라", "초코", "딸기", "망고", "블루베리", 
+            "레몬", "자몽", "청포도", "복숭아", "사과", 
+            "바나나", "녹차", "얼그레이", "밀크티", "흑임자", 
+            "인절미", "카라멜", "민트초코", "커피", "고구마"
+        ];
+        const dessertTypes = [
+            "케이크", "마카롱", "크로플", "와플", "팬케이크", 
+            "타르트", "빙수", "젤라또", "아이스크림", "파르페", 
+            "브라우니", "쿠키", "스콘", "휘낭시에", "까눌레", 
+            "마들렌", "에그타르트", "다쿠아즈", "푸딩", "수플레"
+        ];
+
+        // Setup Counts on load
+        document.addEventListener("DOMContentLoaded", () => {
+            const totalMeals = mealAdjectives.length * mealIngredients.length * mealTypes.length;
+            const totalDesserts = dessertAdjectives.length * dessertFlavors.length * dessertTypes.length;
+            
+            // Format numbers with commas (e.g., 8,000)
+            document.getElementById('meal-count').textContent = totalMeals.toLocaleString();
+            document.getElementById('dessert-count').textContent = totalDesserts.toLocaleString();
+        });
+
+        // Helper to get random item from array
+        const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+        // Main Recommend Function
+        function recommend(type) {
+            const resultArea = document.getElementById('result-area');
+            const resultText = document.getElementById('result-text');
+            const subText = document.getElementById('sub-text');
+            const badge = document.getElementById('category-badge');
+
+            // Reset animations
+            resultText.classList.remove('animate-pop-in');
+            
+            // Show Shuffle Effect
+            resultText.classList.add('animate-shuffle');
+            resultText.innerHTML = "선택 중...<br>🎲🎲🎲";
+            subText.textContent = "두구두구두구...";
+            badge.style.opacity = '0';
+
+            // Set specific classes based on type for UI aesthetics
+            if (type === 'meal') {
+                resultArea.className = "h-64 flex flex-col items-center justify-center p-8 text-center transition-all duration-500 relative theme-meal text-white rounded-t-3xl";
+                badge.className = "absolute top-6 px-4 py-1 rounded-full text-sm font-bold bg-orange-500 text-white shadow-md opacity-0 transition-opacity";
+                badge.textContent = "🍚 식사 추천";
+            } else {
+                resultArea.className = "h-64 flex flex-col items-center justify-center p-8 text-center transition-all duration-500 relative theme-dessert text-white rounded-t-3xl";
+                badge.className = "absolute top-6 px-4 py-1 rounded-full text-sm font-bold bg-purple-500 text-white shadow-md opacity-0 transition-opacity";
+                badge.textContent = "🍰 디저트 추천";
+            }
+
+            // Simulate loading time (600ms) before showing result
+            setTimeout(() => {
+                let adj, main, dish, finalMenu;
+
+                if (type === 'meal') {
+                    adj = getRandom(mealAdjectives);
+                    main = getRandom(mealIngredients);
+                    dish = getRandom(mealTypes);
+                    subText.textContent = "든든한 한 끼로 완벽해요!";
+                } else {
+                    adj = getRandom(dessertAdjectives);
+                    main = getRandom(dessertFlavors);
+                    dish = getRandom(dessertTypes);
+                    subText.textContent = "스트레스가 싹 풀리는 달콤함!";
+                }
+
+                finalMenu = `${adj} <br><span class="text-4xl md:text-5xl font-black mt-2 inline-block shadow-sm">${main} ${dish}</span>`;
+
+                // Apply Result
+                resultText.classList.remove('animate-shuffle');
+                resultText.innerHTML = finalMenu;
+                resultText.classList.add('animate-pop-in');
+                badge.style.opacity = '1';
+
+                // Change text colors to match white theme appropriately
+                resultText.classList.remove('text-gray-800');
+                subText.classList.remove('text-gray-600');
+                subText.classList.add('text-white', 'opacity-90');
+
+            }, 600);
+        }
+    </script>
+</body>
+</html>
