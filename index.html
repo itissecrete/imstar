@@ -74,6 +74,14 @@
             <p id="sub-text" class="mt-4 text-gray-600 font-medium">당신의 완벽한 한 끼를 찾아드립니다.</p>
         </div>
 
+        <!-- Recipe Generation Action -->
+        <div id="recipe-action-container" class="hidden px-8 pt-4 pb-2 bg-white flex justify-center w-full">
+            <button onclick="generateRecipe()" class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-full font-semibold shadow-md transition-transform transform hover:scale-105">
+                <svg class="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                AI 레시피 생성하기
+            </button>
+        </div>
+
         <!-- Controls -->
         <div class="p-8 bg-white flex flex-col md:flex-row gap-4 justify-center items-center">
             <button onclick="recommend('meal')" class="w-full md:w-1/2 group relative px-6 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 overflow-hidden">
@@ -100,25 +108,64 @@
         <p>🍩 총 가능한 디저트 메뉴 조합 수: <strong id="dessert-count" class="text-purple-600 font-semibold"></strong>개</p>
     </footer>
 
+    <!-- Recipe Modal -->
+    <div id="recipe-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden transform transition-all animate-pop-in">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 id="recipe-modal-title" class="text-xl font-bold text-gray-800">레시피</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- Loading State -->
+                <div id="recipe-loading" class="flex flex-col items-center justify-center py-10 space-y-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                    <p class="text-gray-500 font-medium animate-pulse text-center">
+                        자취생을 위한 초간단 가성비 레시피를<br>AI가 작성 중입니다... 🍳
+                    </p>
+                </div>
+                
+                <!-- Recipe Content -->
+                <div id="recipe-content" class="hidden text-gray-700 space-y-4 leading-relaxed text-sm md:text-base">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 text-center">
+                <button onclick="closeModal()" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Store current selected menu globally
+        let currentMenuName = "";
+
         // Data generation arrays - 20 items per array ensuring 20 * 20 * 20 = 8000 combinations each
         const mealAdjectives = [
-            "매콤한", "달콤한", "짭짤한", "얼큰한", "담백한", 
-            "고소한", "불맛 나는", "진한", "부드러운", "바삭한", 
-            "새콤달콤한", "칼칼한", "구수한", "향긋한", "마라맛", 
-            "치즈 듬뿍", "트러플 향", "갈릭", "단짠단짠", "입에서 녹는"
+            "매콤한", "달달한", "짭짤한", "얼큰한", "가성비 갑", 
+            "고소한", "불맛 나는", "푸짐한", "치즈 듬뿍", "바삭한", 
+            "새콤달콤한", "칼칼한", "단짠단짠", "마라맛", "불닭소스", 
+            "간장버터", "갈릭", "참치마요", "간단한", "해장용"
         ];
         const mealIngredients = [
-            "돼지고기", "소고기", "닭고기", "오리", "양고기", 
-            "연어", "참치", "새우", "오징어", "문어", 
-            "전복", "명란", "두부", "버섯", "김치", 
-            "스팸", "베이컨", "소시지", "아보카도", "차돌박이"
+            "스팸", "계란", "참치", "제육", "삼겹살", 
+            "닭갈비", "소시지", "치킨", "대패삼겹살", "돼지고기", 
+            "우삼겹", "김치", "두부", "버섯", "베이컨", 
+            "순대", "돈까스", "새우", "만두", "떡갈비"
         ];
         const mealTypes = [
-            "덮밥", "볶음밥", "비빔밥", "찌개", "전골", 
-            "국밥", "볶음", "구이", "조림", "찜", 
-            "튀김", "파스타", "우동", "라면", "짬뽕", 
-            "쌀국수", "돈까스", "스테이크", "피자", "버거"
+            "덮밥", "볶음밥", "마요덮밥", "찌개", "컵밥", 
+            "국밥", "떡볶이", "라면", "김밥", "주먹밥", 
+            "튀김", "파스타", "우동", "도시락", "짬뽕", 
+            "비빔밥", "샌드위치", "버거", "피자", "국수"
         ];
 
         const dessertAdjectives = [
@@ -159,9 +206,11 @@
             const resultText = document.getElementById('result-text');
             const subText = document.getElementById('sub-text');
             const badge = document.getElementById('category-badge');
+            const recipeActionContainer = document.getElementById('recipe-action-container');
 
-            // Reset animations
+            // Reset animations & hide recipe button initially
             resultText.classList.remove('animate-pop-in');
+            recipeActionContainer.classList.add('hidden');
             
             // Show Shuffle Effect
             resultText.classList.add('animate-shuffle');
@@ -197,6 +246,7 @@
                 }
 
                 finalMenu = `${adj} <br><span class="text-4xl md:text-5xl font-black mt-2 inline-block shadow-sm">${main} ${dish}</span>`;
+                currentMenuName = `${adj} ${main} ${dish}`;
 
                 // Apply Result
                 resultText.classList.remove('animate-shuffle');
@@ -208,8 +258,76 @@
                 resultText.classList.remove('text-gray-800');
                 subText.classList.remove('text-gray-600');
                 subText.classList.add('text-white', 'opacity-90');
+                
+                // Show Recipe Button
+                recipeActionContainer.classList.remove('hidden');
 
             }, 600);
+        }
+
+        // Gemini API Recipe Generation
+        async function generateRecipe() {
+            const modal = document.getElementById('recipe-modal');
+            const loading = document.getElementById('recipe-loading');
+            const content = document.getElementById('recipe-content');
+            const title = document.getElementById('recipe-modal-title');
+
+            // Setup and open modal
+            title.textContent = `"${currentMenuName}" 레시피 👩‍🍳`;
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const systemPrompt = `당신은 좁은 원룸에 사는 가난한 대학생을 위한 최고의 자취 요리 전문가입니다. 
+다음 원칙을 엄격하게 지켜주세요:
+1. 비싼 재료는 절대 사용하지 말고, 편의점이나 동네 마트에서 쉽게 구할 수 있는 대체재(스팸, 참치, 계란, 조미김 등)를 활용하세요.
+2. 조리 도구는 전자레인지나 프라이팬 하나로 끝낼 수 있게 아주 간단해야 합니다.
+3. 응답은 웹페이지에 바로 삽입되므로 마크다운 대신 깔끔한 HTML 태그(<h2>, <h3>, <ul>, <li>, <strong>, <br> 등)만을 사용하여 가독성 좋게 출력해주세요. 불필요한 마크다운 백틱(\`\`\`)은 넣지 마세요.
+4. 재료와 조리 순서를 명확하게 구분해주세요.`;
+
+            const userQuery = `오늘의 추천 메뉴는 "${currentMenuName}"입니다. 이 메뉴를 만들 수 있는 초간단, 가성비 레시피를 알려주세요.`;
+            const apiKey = ""; // API key is automatically provided in this runtime environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
+                    let aiText = result.candidates[0].content.parts[0].text;
+                    
+                    // Remove potential markdown formatting blocks if AI still includes them
+                    aiText = aiText.replace(/```html/g, '').replace(/```/g, '');
+                    
+                    content.innerHTML = aiText;
+                } else {
+                    content.innerHTML = `<div class="text-red-500 font-semibold text-center">레시피를 불러오는데 실패했습니다. 😭<br>다시 시도해주세요.</div>`;
+                }
+            } catch (error) {
+                console.error("API Error:", error);
+                content.innerHTML = `<div class="text-red-500 font-semibold text-center">네트워크 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.</div>`;
+            } finally {
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            }
+        }
+
+        // Close Modal
+        function closeModal() {
+            const modal = document.getElementById('recipe-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     </script>
 </body>
