@@ -28,7 +28,7 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
 
-    <!-- Main Split Wrapper (초기엔 중앙 정렬 max-w-md, 레시피 오픈 시 좌우 분할 max-w-5xl) -->
+    <!-- Main Split Wrapper -->
     <div id="app-wrapper" class="w-full max-w-md transition-all duration-500 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6">
         
         <!-- Left Panel: 메뉴 추천 룰렛 -->
@@ -62,7 +62,7 @@
             </div>
         </div>
 
-        <!-- Right Panel: AI 레시피 & 채팅 (초기엔 숨김, 클릭 시 우측 반반 화면으로 등장) -->
+        <!-- Right Panel: AI 레시피 & 채팅 -->
         <div id="recipe-panel" class="hidden w-full lg:flex-1 bg-white rounded-3xl shadow-xl overflow-hidden flex-col h-[75vh] min-h-[520px] max-h-[720px] animate-pop-in">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-shrink-0">
                 <h3 id="recipe-modal-title" class="text-lg md:text-xl font-bold text-gray-800 truncate pr-2">레시피</h3>
@@ -90,26 +90,39 @@
     </div>
 
     <script>
-        // Cloudflare Worker URL
         const SERVER_URL = "https://weathered-lab-4edf.lookc869.workers.dev/";
         let currentMenuName = "";
         let chatHistory = []; 
 
+        // 현실적인 자취생 메뉴 데이터로 전면 교체
         const mealsData = {
-            adjectives: ["가성비 갑", "치즈 듬뿍", "매콤달콤", "해장용", "단짠단짠", "든든한", "초간단", "스트레스 풀리는", "엄마 손맛", "야식 추천", "고소한", "얼큰한", "달짝지근한", "불맛 나는", "바삭한", "촉촉한", "영양 만점", "밥도둑", "술안주", "다이어트(양심상)"],
-            ingredients: ["스팸", "참치", "계란", "제육", "대패삼겹살", "김치", "소시지", "어묵", "두부", "닭가슴살", "돼지고기", "우동사리", "라면사리", "베이컨", "옥수수콘", "떡", "만두", "고추장", "간장", "마요네즈"],
-            types: ["마요덮밥", "컵밥", "떡볶이", "주먹밥", "라면", "볶음밥", "비빔밥", "찌개", "전", "파스타", "우동", "국수", "토스트", "샌드위치", "샐러드", "김밥", "유부초밥", "그라탕", "리조또", "덮밥"]
+            adjectives: ["가성비 갑", "스트레스 풀리는", "초간단", "든든한", "단짠단짠", "해장용", "엄마 손맛", "야식 추천", "매콤달콤", "영양 만점", "설거지 1분", "자취생 필수", "밥도둑", "국물이 끝내주는", "치즈 듬뿍", "포만감 100%", "냉파(냉장고 파먹기)", "맥주 안주로 딱인", "고소한", "비주얼 폭발"],
+            menus: [
+                "스팸 김치볶음밥", "참치마요 덮밥", "간장버터 계란밥", "순두부 열라면", "대패삼겹 숙주볶음", 
+                "베이컨 크림우동", "전자레인지 계란찜", "참치 김치찌개", "불닭 치즈볶음면", "냉동만두 강정", 
+                "식빵 컵피자", "편의점 마크정식", "짜파구리", "참치 비빔국수", "삼겹살 쌈장볶음밥", 
+                "콘치즈 덮밥", "사골곰탕 만둣국", "우동사리 볶음", "치킨마요 덮밥", "김치 참치전", 
+                "두부 김치", "어묵 볶음", "제육 덮밥", "소시지 야채볶음", "간장 비빔국수", 
+                "로제 떡볶이(시판용)", "전자레인지 찜닭", "명란마요 덮밥", "카레라이스", "닭가슴살 볶음밥", 
+                "차돌박이 된장찌개", "김치말이 국수", "대왕 유부초밥", "자취생 떡국", "두툼한 계란말이", 
+                "오므라이스", "새우 볶음밥", "김치 우동", "돼지고기 김치찜", "마늘 볶음밥"
+            ]
         };
 
         const dessertsData = {
-            adjectives: ["달콤한", "상큼한", "부드러운", "시원한", "꾸덕한", "쫀득한", "바삭한", "사르르 녹는", "쌉싸름한", "고소한", "가벼운", "든든한", "상쾌한", "진한", "촉촉한", "폭신폭신한", "짭짤한", "달달한", "톡 쏘는", "차가운"],
-            ingredients: ["초코", "바닐라", "딸기", "녹차", "치즈", "카라멜", "요거트", "망고", "복숭아", "사과", "바나나", "팥", "인절미", "흑임자", "레몬", "자몽", "블루베리", "오레오", "로투스", "민트초코"],
-            types: ["아이스크림", "마카롱", "크로플", "빙수", "케이크", "쿠키", "푸딩", "젤리", "쉐이크", "에이드", "스무디", "타르트", "와플", "팬케이크", "도넛", "머핀", "스콘", "브라우니", "카스테라", "파르페"]
+            adjectives: ["달콤한", "상큼한", "스트레스 녹는", "시원한", "꾸덕한", "당 충전", "초간단", "홈카페", "비주얼 폭발", "부드러운", "사르르 녹는", "바삭한", "가성비 갑", "고급스러운", "쫀득한", "달달한", "상쾌한", "차가운", "사진 찍기 좋은", "입가심용"],
+            menus: [
+                "오레오 쉐이크", "식빵 러스크", "전자레인지 브라우니", "딸기 바나나 스무디", "요거트 볼", 
+                "인절미 토스트", "초코파이 미니케이크", "아이스크림 호떡", "크림치즈 크래커", "우유 컵빙수", 
+                "달고나 커피", "사이다 과일화채", "핫케이크", "바닐라 아이스크림", "시리얼 파르페", 
+                "얼음 동동 미숫가루", "식빵 츄러스", "냉동망고 연유빙수", "아포가토", "요구르트 샤베트", 
+                "누텔라 바나나 토스트", "에어프라이어 홈런볼", "아이스 홍시", "과일 요거트 샐러드", "미니 치즈케이크(편의점)"
+            ]
         };
 
         window.onload = () => {
-            document.getElementById('meal-count').innerText = (mealsData.adjectives.length * mealsData.ingredients.length * mealsData.types.length).toLocaleString();
-            document.getElementById('dessert-count').innerText = (dessertsData.adjectives.length * dessertsData.ingredients.length * dessertsData.types.length).toLocaleString();
+            document.getElementById('meal-count').innerText = (mealsData.adjectives.length * mealsData.menus.length).toLocaleString();
+            document.getElementById('dessert-count').innerText = (dessertsData.adjectives.length * dessertsData.menus.length).toLocaleString();
         };
 
         function getRandomItem(array) { return array[Math.floor(Math.random() * array.length)]; }
@@ -127,18 +140,18 @@
 
             let shuffleCount = 0;
             const shuffleInterval = setInterval(() => {
-                resultText.innerText = `${getRandomItem(data.adjectives)} ${getRandomItem(data.ingredients)} ${getRandomItem(data.types)}`;
+                // 수식어 + 메뉴로만 표시
+                resultText.innerText = `${getRandomItem(data.adjectives)}\n${getRandomItem(data.menus)}`;
                 resultText.style.opacity = '0.5';
                 
                 shuffleCount++;
                 if (shuffleCount > 10) {
                     clearInterval(shuffleInterval);
                     const finalAdj = getRandomItem(data.adjectives);
-                    const finalIng = getRandomItem(data.ingredients);
-                    const finalTyp = getRandomItem(data.types);
-                    currentMenuName = `${finalAdj} ${finalIng} ${finalTyp}`; 
+                    const finalMenu = getRandomItem(data.menus);
+                    currentMenuName = `${finalAdj} ${finalMenu}`; 
                     
-                    resultText.innerHTML = `<span class="slot-machine-text text-${type === 'meal' ? 'orange' : 'purple'}-600">${finalAdj}</span> <br> <span class="slot-machine-text" style="animation-delay: 0.1s">${finalIng} ${finalTyp}</span>`;
+                    resultText.innerHTML = `<span class="slot-machine-text text-${type === 'meal' ? 'orange' : 'purple'}-600">${finalAdj}</span> <br> <span class="slot-machine-text" style="animation-delay: 0.1s">${finalMenu}</span>`;
                     resultText.style.opacity = '1';
 
                     setTimeout(() => {
@@ -178,7 +191,6 @@
             const chatInputArea = document.getElementById('chat-input-area');
             const chatInput = document.getElementById('chat-input');
 
-            // 화면을 반반 분할 레이아웃으로 확장
             wrapper.classList.remove('max-w-md');
             wrapper.classList.add('max-w-5xl');
             panel.classList.remove('hidden');
@@ -195,7 +207,6 @@
             content.innerHTML = ''; 
             chatHistory = []; 
 
-            // 모바일 환경에서는 아래쪽에 열린 레시피 패널로 부드럽게 스크롤
             if (window.innerWidth < 1024) {
                 setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
             }
